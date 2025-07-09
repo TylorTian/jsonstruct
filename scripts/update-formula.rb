@@ -1,29 +1,24 @@
 #!/usr/bin/env ruby
-require "digest"
-require "fileutils"
 require "open-uri"
+require "digest"
 
 version = ARGV[0]
-abort("Usage: ruby update-formula.rb VERSION") unless version
+abort("Usage: ruby scripts/update-formula.rb <version>") unless version
 
-tarball_url = "https://files.pythonhosted.org/packages/source/j/jsonstruct-cli/jsonstruct_cli-#{version}.tar.gz"
-tarball_path = "jsonstruct_cli-#{version}.tar.gz"
-
-puts "🔽 Downloading #{tarball_url}"
-URI.open(tarball_url) do |r|
-  File.open(tarball_path, "wb") { |f| f.write(r.read) }
-end
-
-sha256 = Digest::SHA256.file(tarball_path).hexdigest
+pypi_url = "https://files.pythonhosted.org/packages/source/j/jsonstruct-cli/jsonstruct_cli-#{version}.tar.gz"
+puts "🔽 Downloading #{pypi_url}"
+file = URI.open(pypi_url).read
+sha256 = Digest::SHA256.hexdigest(file)
 puts "✅ SHA256: #{sha256}"
 
-formula_path = "Formula/jsonstruct.rb"
+formula_path = "../homebrew-tap/Formula/jsonstruct.rb"
+abort("❌ Formula not found at #{formula_path}") unless File.exist?(formula_path)
+
 content = File.read(formula_path)
+content.gsub!(/jsonstruct_cli-.*?\.tar\.gz"/, "jsonstruct_cli-#{version}.tar.gz\"")
+content.gsub!(/sha256\s+\".*?\"/, "sha256 \"#{sha256}\"")
+File.write(formula_path, content)
 
-new_content = content
-  .gsub(/jsonstruct_cli-[\d.]+\.tar\.gz/, "jsonstruct_cli-#{version}.tar.gz")
-  .gsub(/sha256 "[a-f0-9]{64}"/, "sha256 \"#{sha256}\"")
-
-File.write(formula_path, new_content)
 puts "✅ Updated #{formula_path}"
+puts "🚀 Now run:\n  cd ../homebrew-tap && git commit -am 'bump: jsonstruct #{version}' && git push"
 
