@@ -10,4 +10,5 @@ pip install .
 ```bash
 jsonstruct --file input.json --decode-jwt
 jsonstruct --json '{"token": "..."}'
+jsonstruct --version
 ```
