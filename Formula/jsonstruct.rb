@@ -11,7 +11,7 @@ class Jsonstruct < Formula
 
   resource "pyjwt" do
     url "https://files.pythonhosted.org/packages/source/p/pyjwt/pyjwt-2.10.1.tar.gz"
-    sha256 "c550397bef77e0cd6f51a969228acd91084ec6dc2be54004c9a3cfe46e4a4258"
+    sha256 "3cc5772eb20009233caf06e9d8a0577824723b44e6648ee0a2aedb6cf9381953"
   end
 
 
