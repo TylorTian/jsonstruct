@@ -8,24 +8,26 @@ CURRENT_VERSION=$(sed -nE 's/^version = "([0-9]+)\.([0-9]+)\.([0-9]+)"/\1.\2.\3/
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
 case "$PART" in
-  major)
-    ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
-  minor)
-    ((MINOR+=1)); PATCH=0 ;;
-  patch)
-    ((PATCH+=1)) ;;
-  *)
-    echo "Unknown version part: $PART"; exit 1 ;;
+  major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+  minor) ((MINOR+=1)); PATCH=0 ;;
+  patch) ((PATCH+=1)) ;;
+  *) echo "❌ Unknown version part: $PART"; exit 1 ;;
 esac
 
 NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+# Prevent duplicate tags
+if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
+  echo "❌ Git tag v$NEW_VERSION already exists. Aborting release."
+  exit 1
+fi
 
 echo -e "\n✨ Bumping version ($PART -> $NEW_VERSION)"
 bump2version --allow-dirty --new-version "$NEW_VERSION" --tag "$PART"
 
 RELEASE_VERSION="$NEW_VERSION"
 echo -e "\n📦 Releasing version: $RELEASE_VERSION"
-echo "🔍 Verifying pyproject.toml version:"
+echo "🔍 Confirm pyproject.toml version:"
 grep '^version = ' pyproject.toml
 
 # Git push + tag
@@ -39,11 +41,11 @@ echo "📦 Building package"
 python -m build
 
 echo "🚀 Uploading to PyPI"
-twine upload dist/* || {
-  echo "❌ Upload failed. Version may already exist on PyPI."
-  echo "🛑 Aborting release to prevent duplicate version conflict."
+if ! twine upload dist/*; then
+  echo "❌ PyPI upload failed. Possible reason: version already exists."
+  echo "🛑 Aborting to prevent duplicate release."
   exit 1
-}
+fi
 
 echo "🍺 Updating Homebrew Formula"
 PYPI_TARBALL="https://files.pythonhosted.org/packages/source/j/jsonstruct-cli/jsonstruct_cli-${RELEASE_VERSION}.tar.gz"
