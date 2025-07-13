@@ -3,24 +3,30 @@ set -euo pipefail
 
 PART=${1:-patch}
 
-# Extract current version
+# Extract current version from pyproject.toml
 CURRENT_VERSION=$(sed -nE 's/^version = "([0-9]+)\.([0-9]+)\.([0-9]+)"/\1.\2.\3/p' pyproject.toml)
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
-case "$PART" in
-  major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
-  minor) ((MINOR+=1)); PATCH=0 ;;
-  patch) ((PATCH+=1)) ;;
-  *) echo "❌ Unknown version part: $PART"; exit 1 ;;
-esac
+function tag_exists() {
+  git rev-parse "v$1" >/dev/null 2>&1
+}
 
-NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+# Increment until we find a free version tag
+while true; do
+  case "$PART" in
+    major) ((MAJOR+=1)); MINOR=0; PATCH=0 ;;
+    minor) ((MINOR+=1)); PATCH=0 ;;
+    patch) ((PATCH+=1)) ;;
+    *) echo "❌ Unknown version part: $PART"; exit 1 ;;
+  esac
 
-# Prevent duplicate tags
-if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
-  echo "❌ Git tag v$NEW_VERSION already exists. Aborting release."
-  exit 1
-fi
+  NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+  if ! tag_exists "$NEW_VERSION"; then
+    break
+  fi
+  echo "⚠️ Git tag v$NEW_VERSION already exists. Trying next..."
+  PART=patch
+done
 
 echo -e "\n✨ Bumping version ($PART -> $NEW_VERSION)"
 bump2version --allow-dirty --new-version "$NEW_VERSION" --tag "$PART"
