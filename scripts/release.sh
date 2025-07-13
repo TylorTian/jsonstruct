@@ -30,7 +30,8 @@ esac
 NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
 echo -e "\n✨ Bumping version ($PART -> $NEW_VERSION)"
-bump2version --new-version "$NEW_VERSION" "$PART"
+bump2version --allow-dirty --new-version "$NEW_VERSION" --tag "$PART"
+
 
 RELEASE_VERSION="$NEW_VERSION"
 echo -e "\n📦 Releasing version: $RELEASE_VERSION"
