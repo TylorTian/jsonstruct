@@ -16,7 +16,8 @@ def is_jwt(token):
             return False
         header = json.loads(base64url_decode(parts[0] + '=='))
         return 'alg' in header and 'typ' in header
-    except: return False
+    except:
+        return False
 
 def decode_jwts(obj):
     if isinstance(obj, dict):
@@ -39,13 +40,22 @@ def main():
     group.add_argument('--file')
     group.add_argument('--json')
     group.add_argument('--input', action='store_true')
-    parser.add_argument('--decode-jwt', action='store_true')
+    parser.add_argument('--decode-jwt', metavar='JWT', help='Decode a single JWT token')
+    parser.add_argument('--decode-jwt-from-json', action='store_true', help='Recursively decode JWT fields in JSON')
     parser.add_argument('--output')
     parser.add_argument('--version', action='store_true')
     args = parser.parse_args()
 
     if args.version:
         print(importlib.metadata.version("jsonstruct-cli"))
+        return
+
+    if args.decode_jwt:
+        try:
+            decoded = jwt.decode(args.decode_jwt, options={"verify_signature": False})
+            print(pprint.pformat(decoded, indent=2))
+        except Exception as e:
+            print(f"Failed to decode JWT: {e}")
         return
 
     if args.file:
@@ -60,7 +70,7 @@ def main():
         return
 
     obj = parse_input(raw)
-    if args.decode_jwt:
+    if args.decode_jwt_from_json:
         obj = decode_jwts(obj)
     out = pprint.pformat(obj, indent=2, width=100)
     if args.output:
@@ -70,3 +80,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

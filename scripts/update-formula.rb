@@ -8,15 +8,32 @@ version = ARGV[0] or abort("Usage: ruby scripts/update-formula.rb <version>")
 jsonstruct_url = "https://files.pythonhosted.org/packages/source/j/jsonstruct-cli/jsonstruct_cli-#{version}.tar.gz"
 pyjwt_url = "https://files.pythonhosted.org/packages/source/p/pyjwt/pyjwt-2.10.1.tar.gz"
 
+# Helper to retry downloads
+def retry_download(url, max_retries: 5, delay: 5)
+  retries = 0
+  begin
+    return URI.open(url).read
+  rescue OpenURI::HTTPError => e
+    retries += 1
+    if retries < max_retries
+      puts "⏳ Waiting #{delay}s and retrying (#{retries}/#{max_retries})..."
+      sleep delay
+      retry
+    else
+      abort("❌ Failed to download #{url} after #{max_retries} attempts: #{e.message}")
+    end
+  end
+end
+
 # Download and hash jsonstruct
 puts "🔽 Downloading #{jsonstruct_url}"
-jsonstruct_tar = URI.open(jsonstruct_url).read
+jsonstruct_tar = retry_download(jsonstruct_url)
 jsonstruct_sha = Digest::SHA256.hexdigest(jsonstruct_tar)
 puts "✅ jsonstruct_sha: #{jsonstruct_sha}"
 
 # Download and hash pyjwt
 puts "🔽 Downloading #{pyjwt_url}"
-pyjwt_tar = URI.open(pyjwt_url).read
+pyjwt_tar = retry_download(pyjwt_url)
 pyjwt_sha = Digest::SHA256.hexdigest(pyjwt_tar)
 puts "✅ pyjwt_sha: #{pyjwt_sha}"
 
