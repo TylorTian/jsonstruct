@@ -28,8 +28,18 @@ while true; do
   PART=patch
 done
 
+# Update pyproject.toml directly
+sed -i '' -E "s/^version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
+
+ACTUAL_VERSION=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p' pyproject.toml)
+if [[ "$ACTUAL_VERSION" != "$NEW_VERSION" ]]; then
+  echo "❌ pyproject.toml version is $ACTUAL_VERSION, expected $NEW_VERSION. Aborting."
+  exit 1
+fi
+
 echo -e "\n✨ Bumping version ($PART -> $NEW_VERSION)"
-bump2version --allow-dirty --new-version "$NEW_VERSION" --tag "$PART"
+git commit -am "chore: bump version to $NEW_VERSION"
+git tag -a "v$NEW_VERSION" -m "Release $NEW_VERSION"
 
 RELEASE_VERSION="$NEW_VERSION"
 echo -e "\n📦 Releasing version: $RELEASE_VERSION"
